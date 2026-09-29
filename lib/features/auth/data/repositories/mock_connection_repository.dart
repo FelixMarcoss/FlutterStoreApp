@@ -11,22 +11,39 @@ class MockConnectionRepository implements ConnectionRepository {
   static const _demoPassword = '1234';
 
   @override
-  Future<ConnectionConfig> connect({
+  Future<ConnectionAttempt> connect({
     required String ip,
     required String port,
+    required String operatorName,
     required String username,
     required String password,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 900));
 
-    if (username.trim().toLowerCase() != _demoUsername || password != _demoPassword) {
+    if (username.trim().toLowerCase() != _demoUsername ||
+        password != _demoPassword) {
       throw const ConnectionException(
         'Usuário ou senha inválidos. Verifique com o administrador do sistema.',
       );
     }
 
-    return ConnectionConfig(ip: ip, port: port, username: username.trim());
+    return ConnectionAuthorized(
+      ConnectionConfig(
+        ip: ip,
+        port: port,
+        username: username.trim(),
+        scheme: 'http',
+      ),
+    );
   }
+
+  @override
+  Future<ConnectionAttempt> pollApproval() => throw const ConnectionException(
+    'O modo de demonstração não possui aprovação pendente.',
+  );
+
+  @override
+  Future<ConnectionConfig?> restoreSession() async => null;
 
   @override
   Future<void> disconnect() async {

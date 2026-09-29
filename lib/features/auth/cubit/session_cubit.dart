@@ -7,15 +7,33 @@ import '../data/repositories/connection_repository.dart';
 /// `state == null` => não conectado (o [AppRouter] redireciona para /login).
 class SessionCubit extends Cubit<ConnectionConfig?> {
   SessionCubit({required ConnectionRepository connectionRepository})
-      : _connectionRepository = connectionRepository,
-        super(null);
+    : _connectionRepository = connectionRepository,
+      super(null);
 
   final ConnectionRepository _connectionRepository;
+  bool _disconnecting = false;
 
   void setConnected(ConnectionConfig connection) => emit(connection);
 
+  Future<void> restore() async {
+    try {
+      final connection = await _connectionRepository.restoreSession();
+      if (!isClosed && connection != null) emit(connection);
+    } catch (_) {
+      // Sessão ausente/corrompida não impede a abertura da tela de login.
+    }
+  }
+
   Future<void> disconnect() async {
-    await _connectionRepository.disconnect();
-    emit(null);
+    if (_disconnecting) return;
+    _disconnecting = true;
+    // Bloqueia a interface imediatamente. A revogação no servidor pode levar
+    // alguns segundos quando justamente foi a rede que caiu.
+    if (!isClosed && state != null) emit(null);
+    try {
+      await _connectionRepository.disconnect();
+    } finally {
+      _disconnecting = false;
+    }
   }
 }

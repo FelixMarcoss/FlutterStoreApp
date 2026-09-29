@@ -6,8 +6,10 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/cubit/session_cubit.dart';
 import '../features/auth/view/login_screen.dart';
 import '../features/detections/view/detection_detail_screen.dart';
+import '../features/detections/view/detection_history_screen.dart';
 import '../features/detections/view/detections_list_screen.dart';
 import '../features/alert/view/alert_screen.dart';
+import '../features/settings/view/alert_preferences_screen.dart';
 
 /// Faz o [GoRouter] reavaliar `redirect` sempre que a stream muda de valor —
 /// aqui, sempre que [SessionCubit] conecta/desconecta.
@@ -38,14 +40,24 @@ GoRouter buildAppRouter({required SessionCubit sessionCubit}) {
     },
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-      GoRoute(path: '/home', builder: (context, state) => const DetectionsListScreen()),
+      GoRoute(
+        path: '/home',
+        builder: (context, state) => const DetectionsListScreen(),
+      ),
+      GoRoute(
+        path: '/history',
+        builder: (context, state) => const DetectionHistoryScreen(),
+      ),
       GoRoute(
         path: '/detection/:id',
-        builder: (context, state) => DetectionDetailScreen(
-          detectionId: state.pathParameters['id']!,
-        ),
+        builder: (context, state) =>
+            DetectionDetailScreen(detectionId: state.pathParameters['id']!),
       ),
       GoRoute(path: '/alert', builder: (context, state) => const AlertScreen()),
+      GoRoute(
+        path: '/settings/alerts',
+        builder: (context, state) => const AlertPreferencesScreen(),
+      ),
     ],
   );
 }

@@ -40,35 +40,48 @@ class _ConnectionFormState extends State<ConnectionForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 3,
-              child: _IpField(controller: _ipController),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 2,
-              child: _PortField(controller: _portController),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _UsernameField(controller: _usernameController),
-        const SizedBox(height: 16),
-        _PasswordField(
-          controller: _passwordController,
-          obscure: _obscurePassword,
-          onToggleObscure: () =>
-              setState(() => _obscurePassword = !_obscurePassword),
-        ),
-        const SizedBox(height: 8),
-        _RememberConnectionSwitch(),
-      ],
+    return BlocListener<LoginCubit, LoginState>(
+      listenWhen: (previous, current) =>
+          previous.ip.value != current.ip.value ||
+          previous.port.value != current.port.value ||
+          previous.username.value != current.username.value,
+      listener: (context, state) {
+        _syncController(_ipController, state.ip.value);
+        _syncController(_portController, state.port.value);
+        _syncController(_usernameController, state.username.value);
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 3, child: _IpField(controller: _ipController)),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: _PortField(controller: _portController)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _UsernameField(controller: _usernameController),
+          const SizedBox(height: 16),
+          _PasswordField(
+            controller: _passwordController,
+            obscure: _obscurePassword,
+            onToggleObscure: () =>
+                setState(() => _obscurePassword = !_obscurePassword),
+          ),
+          const SizedBox(height: 8),
+          _RememberConnectionSwitch(),
+        ],
+      ),
+    );
+  }
+
+  void _syncController(TextEditingController controller, String value) {
+    if (controller.text == value) return;
+    controller.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
     );
   }
 }
@@ -79,19 +92,20 @@ class _IpField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayError =
-        context.select((LoginCubit c) => c.state.ip.displayError);
+    final displayError = context.select(
+      (LoginCubit c) => c.state.ip.displayError,
+    );
     return TextField(
       controller: controller,
       key: const Key('login_ip_field'),
-      keyboardType: TextInputType.numberWithOptions(decimal: true),
+      keyboardType: TextInputType.url,
       onChanged: context.read<LoginCubit>().ipChanged,
       decoration: InputDecoration(
-        labelText: 'Endereço IP',
-        hintText: '192.168.0.10',
+        labelText: 'IP ou hostname',
+        hintText: '192.168.10.1 ou facetrack.local',
         prefixIcon: const Icon(Icons.router_outlined),
         errorText: displayError == IpAddressValidationError.invalid
-            ? 'IP inválido'
+            ? 'Endereço inválido'
             : null,
       ),
     );
@@ -104,8 +118,9 @@ class _PortField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayError =
-        context.select((LoginCubit c) => c.state.port.displayError);
+    final displayError = context.select(
+      (LoginCubit c) => c.state.port.displayError,
+    );
     return TextField(
       controller: controller,
       key: const Key('login_port_field'),
@@ -113,8 +128,10 @@ class _PortField extends StatelessWidget {
       onChanged: context.read<LoginCubit>().portChanged,
       decoration: InputDecoration(
         labelText: 'Porta',
-        hintText: '8080',
-        errorText: displayError == PortValidationError.invalid ? 'Inválida' : null,
+        hintText: '8443',
+        errorText: displayError == PortValidationError.invalid
+            ? 'Inválida'
+            : null,
       ),
     );
   }
@@ -126,8 +143,9 @@ class _UsernameField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayError =
-        context.select((LoginCubit c) => c.state.username.displayError);
+    final displayError = context.select(
+      (LoginCubit c) => c.state.username.displayError,
+    );
     return TextField(
       controller: controller,
       key: const Key('login_username_field'),
@@ -136,8 +154,9 @@ class _UsernameField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: 'Usuário',
         prefixIcon: const Icon(Icons.person_outline),
-        errorText:
-            displayError == UsernameValidationError.empty ? 'Obrigatório' : null,
+        errorText: displayError == UsernameValidationError.empty
+            ? 'Obrigatório'
+            : null,
       ),
     );
   }
@@ -156,8 +175,9 @@ class _PasswordField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayError =
-        context.select((LoginCubit c) => c.state.password.displayError);
+    final displayError = context.select(
+      (LoginCubit c) => c.state.password.displayError,
+    );
     return TextField(
       controller: controller,
       key: const Key('login_password_field'),
@@ -169,11 +189,14 @@ class _PasswordField extends StatelessWidget {
         labelText: 'Senha',
         prefixIcon: const Icon(Icons.lock_outline),
         suffixIcon: IconButton(
-          icon: Icon(obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+          icon: Icon(
+            obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+          ),
           onPressed: onToggleObscure,
         ),
-        errorText:
-            displayError == PasswordValidationError.empty ? 'Obrigatória' : null,
+        errorText: displayError == PasswordValidationError.empty
+            ? 'Obrigatória'
+            : null,
       ),
     );
   }
@@ -182,8 +205,9 @@ class _PasswordField extends StatelessWidget {
 class _RememberConnectionSwitch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final remember =
-        context.select((LoginCubit c) => c.state.rememberConnection);
+    final remember = context.select(
+      (LoginCubit c) => c.state.rememberConnection,
+    );
     return SwitchListTile.adaptive(
       contentPadding: EdgeInsets.zero,
       value: remember,

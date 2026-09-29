@@ -4,42 +4,62 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  static const Color primary = Color(0xFF0B3D91);
-  static const Color primaryDark = Color(0xFF072859);
-  static const Color background = Color(0xFFF4F6F9);
-  static const Color surface = Color(0xFFFFFFFF);
-  static const Color stroke = Color(0xFFE0E4EA);
-  static const Color textPrimary = Color(0xFF1B1F27);
-  static const Color textSecondary = Color(0xFF5A6472);
+  static const Color primary = Color(0xFF2F6FD1);
+  static const Color primaryDark = Color(0xFF214F9B);
+  static const Color brandStart = Color(0xFF3B82F6);
+  static const Color brandEnd = Color(0xFF60A5FA);
+  static const Color background = Color(0xFF0B1016);
+  static const Color surface = Color(0xFF141B24);
+  static const Color surfaceElevated = Color(0xFF1B2530);
+  static const Color stroke = Color(0xFF2B3745);
+  static const Color textPrimary = Color(0xFFF3F6FA);
+  static const Color textSecondary = Color(0xFFA9B4C0);
 
-  /// Ladrão com histórico confirmado — o nível de risco mais alto.
-  static const Color danger = Color(0xFFD32F2F);
-  static const Color dangerBackground = Color(0xFFFDE8E8);
+  /// Suspeito classificado no nível de risco mais alto.
+  static const Color danger = Color(0xFFEF4444);
+  static const Color dangerStrong = Color(0xFFB3262D);
+  static const Color dangerBackground = Color(0xFF3A1B20);
 
   /// Pessoa suspeita, sem confirmação de furto anterior.
-  static const Color warning = Color(0xFFE68A00);
-  static const Color warningBackground = Color(0xFFFFF3E0);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color warningBackground = Color(0xFF382A17);
 
   /// Pessoa nova, sem histórico no sistema.
-  static const Color neutral = Color(0xFF546E7A);
-  static const Color neutralBackground = Color(0xFFECEFF1);
+  static const Color neutral = Color(0xFF06B6D4);
+  static const Color neutralBackground = Color(0xFF253039);
 
-  static const Color success = Color(0xFF2E7D32);
+  /// Ação de confirmação inspirada na identidade visual do painel FaceTrack.
+  static const Color action = Color(0xFF14C8BB);
+  static const Color actionDark = Color(0xFF073C3A);
+
+  static const Color success = Color(0xFF58D07D);
 }
 
 ThemeData buildAppTheme() {
-  final colorScheme = ColorScheme.fromSeed(
-    seedColor: AppColors.primary,
-    primary: AppColors.primary,
-    brightness: Brightness.light,
-  );
+  final colorScheme =
+      ColorScheme.fromSeed(
+        seedColor: AppColors.primary,
+        primary: AppColors.primary,
+        brightness: Brightness.dark,
+      ).copyWith(
+        surface: AppColors.surface,
+        onSurface: AppColors.textPrimary,
+        error: AppColors.danger,
+        onError: AppColors.textPrimary,
+        outline: AppColors.stroke,
+        surfaceContainerHighest: AppColors.surfaceElevated,
+      );
 
   return ThemeData(
     useMaterial3: true,
     colorScheme: colorScheme,
     scaffoldBackgroundColor: AppColors.background,
+    textTheme: ThemeData.dark().textTheme.apply(
+      bodyColor: AppColors.textPrimary,
+      displayColor: AppColors.textPrimary,
+    ),
     appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.background,
       foregroundColor: AppColors.textPrimary,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
@@ -47,7 +67,9 @@ ThemeData buildAppTheme() {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: AppColors.surface,
+      fillColor: AppColors.surfaceElevated,
+      labelStyle: const TextStyle(color: AppColors.textSecondary),
+      hintStyle: const TextStyle(color: AppColors.textSecondary),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
@@ -66,6 +88,9 @@ ThemeData buildAppTheme() {
       style: FilledButton.styleFrom(
         minimumSize: const Size(double.infinity, 50),
         backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: AppColors.surfaceElevated,
+        disabledForegroundColor: AppColors.textSecondary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     ),
@@ -75,6 +100,37 @@ ThemeData buildAppTheme() {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
         side: const BorderSide(color: AppColors.stroke),
+      ),
+    ),
+    dividerTheme: const DividerThemeData(color: AppColors.stroke),
+    popupMenuTheme: const PopupMenuThemeData(
+      color: AppColors.surfaceElevated,
+      surfaceTintColor: Colors.transparent,
+      textStyle: TextStyle(color: AppColors.textPrimary),
+    ),
+    snackBarTheme: const SnackBarThemeData(
+      backgroundColor: AppColors.surfaceElevated,
+      contentTextStyle: TextStyle(color: AppColors.textPrimary),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: AppColors.surface,
+      indicatorColor: AppColors.actionDark,
+      surfaceTintColor: Colors.transparent,
+      iconTheme: WidgetStateProperty.resolveWith(
+        (states) => IconThemeData(
+          color: states.contains(WidgetState.selected)
+              ? AppColors.action
+              : AppColors.textSecondary,
+        ),
+      ),
+      labelTextStyle: WidgetStateProperty.resolveWith(
+        (states) => TextStyle(
+          color: states.contains(WidgetState.selected)
+              ? AppColors.action
+              : AppColors.textSecondary,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     ),
   );

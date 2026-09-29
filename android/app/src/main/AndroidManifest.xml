@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Comunicação HTTPS/WebSocket com o software principal na rede local. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- Vibração contínua do alerta de segurança até o "OK". -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Android 13+: exigido para exibir a notificação de alerta/monitoramento. -->
@@ -8,11 +10,15 @@
     <!-- flutter_foreground_task: mantém a conexão com o software principal viva
          em segundo plano (ver lib/features/alert/alert_service.dart). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <application
-        android:label="sentinela_app"
+        android:label="FaceTrack"
         android:name="${applicationName}"
+        android:allowBackup="false"
+        android:usesCleartextTraffic="false"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
@@ -42,10 +48,15 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
+        <!-- Processa a ação "CONFIRMAR E PARAR" da notificação de alerta. -->
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver"
+            android:exported="false" />
+
         <!-- flutter_foreground_task service. Warning: do not change the name. -->
         <service
             android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
-            android:foregroundServiceType="dataSync"
+            android:foregroundServiceType="connectedDevice"
             android:stopWithTask="true"
             android:exported="false" />
     </application>

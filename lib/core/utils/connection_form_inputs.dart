@@ -2,20 +2,54 @@ import 'package:formz/formz.dart';
 
 enum IpAddressValidationError { invalid }
 
-/// Valida um endereço IPv4 (ex: 192.168.0.10) da rede local da loja.
+/// Aceita somente endereços de rede privada ou hostname `.local`. Como esta
+/// versão usa HTTP/WS sem CA, bloquear destinos públicos evita que credenciais
+/// sejam enviadas acidentalmente para fora da rede da loja.
 class IpAddressInput extends FormzInput<String, IpAddressValidationError> {
   const IpAddressInput.pure([super.value = '']) : super.pure();
   const IpAddressInput.dirty([super.value = '']) : super.dirty();
 
-  static final RegExp _octet = RegExp(
-    r'^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$',
+  static final RegExp _octet = RegExp(r'^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$');
+  static final RegExp _hostname = RegExp(
+    r'^(?=.{1,253}$)([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$',
   );
 
   @override
   IpAddressValidationError? validator(String? value) {
-    final parts = (value ?? '').split('.');
-    final valid = parts.length == 4 && parts.every(_octet.hasMatch);
+    final normalized = (value ?? '').trim();
+    final parts = normalized.split('.');
+    final isIpv4 = parts.length == 4 && parts.every(_octet.hasMatch);
+    final octets = isIpv4 ? parts.map(int.parse).toList() : const <int>[];
+    final isPrivateIpv4 =
+        isIpv4 &&
+        (octets[0] == 10 ||
+            (octets[0] == 172 && octets[1] >= 16 && octets[1] <= 31) ||
+            (octets[0] == 192 && octets[1] == 168));
+    final looksNumeric = RegExp(r'^[0-9.]+$').hasMatch(normalized);
+    final isForbiddenLoopback =
+        normalized.toLowerCase() == 'localhost' ||
+        normalized.startsWith('127.');
+    final isLocalHostname =
+        !looksNumeric &&
+        normalized.toLowerCase().endsWith('.local') &&
+        _hostname.hasMatch(normalized);
+    final valid = !isForbiddenLoopback && (isPrivateIpv4 || isLocalHostname);
     return valid ? null : IpAddressValidationError.invalid;
+  }
+}
+
+enum OperatorNameValidationError { empty }
+
+class OperatorNameInput
+    extends FormzInput<String, OperatorNameValidationError> {
+  const OperatorNameInput.pure([super.value = '']) : super.pure();
+  const OperatorNameInput.dirty([super.value = '']) : super.dirty();
+
+  @override
+  OperatorNameValidationError? validator(String? value) {
+    return (value == null || value.trim().isEmpty)
+        ? OperatorNameValidationError.empty
+        : null;
   }
 }
 

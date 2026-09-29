@@ -16,6 +16,15 @@ void main() {
       expect(ip.isValid, isTrue);
     });
 
+    test('aceita hostname local valido', () {
+      expect(const IpAddressInput.dirty('facetrack.local').isValid, isTrue);
+    });
+
+    test('rejeita endereço público em conexão HTTP local', () {
+      expect(const IpAddressInput.dirty('8.8.8.8').isValid, isFalse);
+      expect(const IpAddressInput.dirty('example.com').isValid, isFalse);
+    });
+
     test('rejeita octeto fora do intervalo', () {
       const ip = IpAddressInput.dirty('192.168.0.999');
       expect(ip.isValid, isFalse);
@@ -25,6 +34,11 @@ void main() {
     test('rejeita formato incompleto', () {
       const ip = IpAddressInput.dirty('192.168.0');
       expect(ip.isValid, isFalse);
+    });
+
+    test('rejeita loopback de smartphone físico', () {
+      expect(const IpAddressInput.dirty('127.0.0.1').isValid, isFalse);
+      expect(const IpAddressInput.dirty('localhost').isValid, isFalse);
     });
   });
 
@@ -60,6 +74,7 @@ void main() {
       const valid = <FormzInput>[
         IpAddressInput.dirty('10.0.0.5'),
         PortInput.dirty('9000'),
+        OperatorNameInput.dirty('Marcos Silva'),
         UsernameInput.dirty('guarda'),
         PasswordInput.dirty('1234'),
       ];
@@ -68,10 +83,18 @@ void main() {
       const missingPassword = <FormzInput>[
         IpAddressInput.dirty('10.0.0.5'),
         PortInput.dirty('9000'),
+        OperatorNameInput.dirty('Marcos Silva'),
         UsernameInput.dirty('guarda'),
         PasswordInput.dirty(''),
       ];
       expect(Formz.validate(missingPassword), isFalse);
+    });
+  });
+
+  group('OperatorNameInput', () {
+    test('exige nome ou matricula do fiscal', () {
+      expect(const OperatorNameInput.dirty('Fiscal 01').isValid, isTrue);
+      expect(const OperatorNameInput.dirty('   ').isValid, isFalse);
     });
   });
 }

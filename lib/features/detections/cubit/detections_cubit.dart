@@ -11,40 +11,42 @@ part 'detections_state.dart';
 
 class DetectionsCubit extends Cubit<DetectionsState> {
   DetectionsCubit({required DetectionRepository detectionRepository})
-      : _repository = detectionRepository,
-        super(const DetectionsState()) {
+    : _repository = detectionRepository,
+      super(const DetectionsState()) {
     _alertSub = _repository.alertsStream.listen(_onAlertReceived);
   }
 
   final DetectionRepository _repository;
   late final StreamSubscription<Detection> _alertSub;
 
-  Future<void> fetchInitial() async {
-    emit(state.copyWith(status: DetectionsStatus.loading));
-    await _load();
-  }
-
-  Future<void> refresh() => _load();
-
-  Future<void> _load() async {
-    try {
-      final detections = await _repository.fetchHistory();
-      if (isClosed) return;
-      emit(state.copyWith(
-        status: DetectionsStatus.success,
-        detections: detections,
-      ));
-    } catch (_) {
-      if (isClosed) return;
-      emit(state.copyWith(
-        status: DetectionsStatus.failure,
-        errorMessage: 'Não foi possível carregar as detecções.',
-      ));
-    }
-  }
-
   void setFilter(DetectionStatus? filter) {
     emit(state.copyWith(filter: filter, clearFilter: filter == null));
+  }
+
+  Future<void> loadRecent() async {
+    List<Detection> recent;
+    try {
+      recent = await _repository.loadRecent();
+    } catch (_) {
+      return;
+    }
+    if (isClosed || recent.isEmpty) return;
+    final byId = <String, Detection>{
+      for (final item in state.detections) item.id: item,
+    };
+    for (final item in recent) {
+      final local = byId[item.id];
+      // O payload mais recente substitui integralmente os metadados remotos.
+      // Isso é especialmente importante para Super Cloud: notes, autor e
+      // data de cadastro precisam permanecer limpos, sem merge com alertas
+      // antigos. Apenas a confirmação local do fiscal é preservada.
+      byId[item.id] = local == null
+          ? item
+          : item.copyWith(acknowledgedAt: local.acknowledgedAt);
+    }
+    final merged = byId.values.toList()
+      ..sort((a, b) => b.detectedAt.compareTo(a.detectedAt));
+    emit(state.copyWith(detections: merged.take(100).toList()));
   }
 
   void _onAlertReceived(Detection detection) {
@@ -52,7 +54,7 @@ class DetectionsCubit extends Cubit<DetectionsState> {
     final updated = [
       detection,
       ...state.detections.where((d) => d.id != detection.id),
-    ];
+    ].take(100).toList();
     emit(state.copyWith(detections: updated));
   }
 
@@ -61,7 +63,11 @@ class DetectionsCubit extends Cubit<DetectionsState> {
   /// principal, já que o app é somente leitura.
   void acknowledge(String detectionId) {
     final updated = state.detections
-        .map((d) => d.id == detectionId ? d.copyWith(acknowledgedAt: DateTime.now()) : d)
+        .map(
+          (d) => d.id == detectionId
+              ? d.copyWith(acknowledgedAt: DateTime.now())
+              : d,
+        )
         .toList();
     emit(state.copyWith(detections: updated));
   }

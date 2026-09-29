@@ -14,9 +14,9 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => LoginCubit(
-        connectionRepository: context.read<ConnectionRepository>(),
-      )..loadLastConnection(),
+      create: (context) =>
+          LoginCubit(connectionRepository: context.read<ConnectionRepository>())
+            ..loadLastConnection(),
       child: const _LoginView(),
     );
   }
@@ -34,10 +34,12 @@ class _LoginView extends StatelessWidget {
           if (state.status.isFailure) {
             ScaffoldMessenger.of(context)
               ..hideCurrentSnackBar()
-              ..showSnackBar(SnackBar(
-                content: Text(state.errorMessage ?? 'Falha ao conectar.'),
-                backgroundColor: AppColors.danger,
-              ));
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(state.errorMessage ?? 'Falha ao conectar.'),
+                  backgroundColor: AppColors.dangerStrong,
+                ),
+              );
           } else if (state.status.isSuccess && state.connection != null) {
             context.read<SessionCubit>().setConnected(state.connection!);
           }
@@ -48,26 +50,38 @@ class _LoginView extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
-                child: const Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _Header(),
-                    SizedBox(height: 32),
-                    Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            ConnectionForm(),
-                            SizedBox(height: 24),
-                            _SubmitButton(),
-                          ],
+                    const _Header(),
+                    const SizedBox(height: 32),
+                    BlocBuilder<LoginCubit, LoginState>(
+                      buildWhen: (previous, current) =>
+                          previous.awaitingApproval !=
+                              current.awaitingApproval ||
+                          previous.approvalExpiresAt !=
+                              current.approvalExpiresAt,
+                      builder: (context, state) => Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: state.awaitingApproval
+                              ? _ApprovalWaiting(
+                                  expiresAt: state.approvalExpiresAt,
+                                )
+                              : const Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    ConnectionForm(),
+                                    SizedBox(height: 24),
+                                    _SubmitButton(),
+                                  ],
+                                ),
                         ),
                       ),
                     ),
-                    SizedBox(height: 16),
-                    _HelperText(),
+                    const SizedBox(height: 16),
+                    const _HelperText(),
                   ],
                 ),
               ),
@@ -93,21 +107,81 @@ class _Header extends StatelessWidget {
             color: AppColors.primary,
             borderRadius: BorderRadius.circular(18),
           ),
-          child: const Icon(Icons.shield_outlined, color: Colors.white, size: 36),
+          child: const Icon(
+            Icons.shield_outlined,
+            color: Colors.white,
+            size: 36,
+          ),
         ),
         const SizedBox(height: 16),
-        Text(
-          'Sentinela',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
+        ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback: (bounds) => const LinearGradient(
+            colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
+          ).createShader(bounds),
+          child: Text(
+            'FaceTrack',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontFamily: 'Orbitron',
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+              color: Colors.white,
+              shadows: const [Shadow(color: Color(0x403B82F6), blurRadius: 15)],
+            ),
+          ),
         ),
         const SizedBox(height: 4),
         const Text(
           'Conecte-se ao sistema de segurança da loja',
           textAlign: TextAlign.center,
           style: TextStyle(color: AppColors.textSecondary),
+        ),
+      ],
+    );
+  }
+}
+
+class _ApprovalWaiting extends StatelessWidget {
+  const _ApprovalWaiting({required this.expiresAt});
+
+  final DateTime? expiresAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final expiryText = expiresAt == null
+        ? null
+        : '${expiresAt!.hour.toString().padLeft(2, '0')}:'
+              '${expiresAt!.minute.toString().padLeft(2, '0')}';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Align(
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: CircularProgressIndicator(strokeWidth: 3),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Aguardando aprovação do gerente',
+          textAlign: TextAlign.center,
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          expiryText == null
+              ? 'Confirme a solicitação na aba Fiscais Mobile do FaceTrack.'
+              : 'Confirme a solicitação na aba Fiscais Mobile até $expiryText.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: 20),
+        OutlinedButton(
+          onPressed: context.read<LoginCubit>().cancelApproval,
+          child: const Text('Cancelar solicitação'),
         ),
       ],
     );
@@ -131,7 +205,10 @@ class _SubmitButton extends StatelessWidget {
           ? const SizedBox(
               width: 22,
               height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+              child: CircularProgressIndicator(
+                strokeWidth: 2.4,
+                color: Colors.white,
+              ),
             )
           : const Text('Conectar'),
     );
